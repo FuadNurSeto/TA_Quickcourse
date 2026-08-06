@@ -1,0 +1,23 @@
+# Stage 1: Build
+FROM golang:1.26-alpine AS builder
+WORKDIR /app
+
+# Copy dependency files
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Copy source code dan build
+COPY . .
+# Build dengan CGO_ENABLED=0 agar binary bisa jalan mandiri di Alpine
+RUN CGO_ENABLED=0 GOOS=linux go build -o course-service ./cmd/main.go
+
+# Stage 2: Run
+FROM alpine:latest
+WORKDIR /app
+
+# Ambil hasil build dari stage 1
+COPY --from=builder /app/course-service .
+
+EXPOSE 8081
+# Jalankan aplikasi
+CMD ["./course-service"]

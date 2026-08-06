@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  db_course:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: db_course
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./course-service/db/init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  db_enrollment:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: db_enrollment
+    ports:
+      - "5433:5432"
+    volumes:
+      - ./enrollment-service/db/init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  course-service:
+    build: ./course-service
+    ports:
+      - "8081:8081"
+    environment:
+      - PORT=8081
+      - DATABASE_URL=postgres://user:password@db_course:5432/db_course?sslmode=disable
+    depends_on:
+      - db_course
+
+  enrollment-service:
+    build: ./enrollment-service
+    ports:
+      - "8082:8082"
+    environment:
+      - PORT=8082
+      - DATABASE_URL=postgres://user:password@db_enrollment:5432/db_enrollment?sslmode=disable
+      - COURSE_SERVICE_URL=http://course-service:8081
+    depends_on:
+      - db_enrollment
+      - course-service
